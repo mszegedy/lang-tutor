@@ -341,9 +341,8 @@ second return value."))
           (loop
             for item in sequence
             for index from 0
-            do
-               (if (typep 'rule-pointer item)
-                   (return index)))))
+            if (typep 'rule-pointer item)
+              return index)))
     (if first-rule-pointer-index
         (let* ((rule-pointer (elt sequence first-rule-pointer-index))
                (rule (get-rule environment (name rule-pointer)))
@@ -473,7 +472,7 @@ second return value."))
                                  for x from 0 to (length
                                                   (sequences left-rule))
                                  with
-                                   this-link =
+                                   this-link = ; this syntax is really stupid
                                              (get-link
                                               environment
                                               :left-name (name left-rule)
