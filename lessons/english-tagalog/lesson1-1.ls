@@ -1,7 +1,15 @@
+;;;; This is a demo file for the .ls format for lang-tutor.lisp.
+;;; Introduction
+;; The INTRODUCTION tag is for the text that gets printed at the lesson start.
 (introduction
  "Tagalog has no copula. The focus, the thing that the subject is being, ~
- comes first, followed by the subject, marked with \"ang\". If the subject is ~
- a pronoun, then it is not marked; pronouns simply inflect.")
+comes first, followed by the subject, marked with \"ang\". If the subject is ~
+a pronoun, then it is not marked; pronouns simply inflect. Every character ~
+is pronounced like its IPA equivalent, except <y>, which is pronounced [j]. ~
+Stress is usually on the second-to-last syllable, unless marked with an ~
+accent, like so: \"akó\". Stressed syllables, unless they are last, are ~
+long. Consecutive vowels have a glottal stop, which tends to disappear in ~
+fast speech.")
 (left-rules
  (tl-sentence
   ((tl-linking-sentence) <period>))
@@ -23,10 +31,10 @@
 (left-words
  (tl-w-lalaki lalaki)
  (tl-w-babae babae)
- (tl-w-bata bata)
- (tl-w-ako ako)
+ (tl-w-bata batà)
+ (tl-w-ako akó)
  (tl-w-ka ka)
- (tl-w-siya siya))
+ (tl-w-siya siyá))
 (right-rules
  (en-sentence
   ((en-linking-sentence) <period>))
@@ -74,4 +82,15 @@
    ((0 1)
     (1 0))))
  (tl-linking-predicate en-noun-phrase)
- ())
+ ((tl-linking-predicate en-singular-noun-phrase)
+  ((0 0)
+   ((0 1)))))
+(word-links
+ (tl-w-ako en-w-i)
+ (tl-w-ka en-w-you)
+ (tl-w-siya en-w-he)
+ (tl-w-siya en-w-she)
+ (tl-w-lalaki en-w-man)
+ (tl-w-lalaki en-w-boy)
+ (tl-w-babae en-w-woman)
+ (tl-w-bata en-w-child))
