@@ -160,6 +160,12 @@ guaranteed to be deterministic."
 ;; First appear in RULE-POINTER
 ;; First appear in RULE
 ;; First appear in LINK
+(defgeneric copy-with-index-reset (link &key side)
+  (:documentation
+   "Returns a copy of the link with the index on one side or the other
+reset to 0. The keyword argument SIDE controls which side that is: 'LEFT will
+make it the left side, 'RIGHT will make it the right side, and anything else,
+such as 'NEITHER, will do neither side. (Please don't use this to deepcopy.)"))
 (defgeneric downgrade-mystery (link &key multiplier)
   (:documentation
    "Reduces the MYSTERY value of the link by a multiplier."))
@@ -278,6 +284,17 @@ second return value."))
   (:documentation
    "A link between two rules, that tells what items are linked inside
   them."))
+(defmethod copy-with-index-reset ((link link) &key side)
+  (make-instance
+   'link
+   :left-name (left-name link)
+   :right-name (right-name link)
+   :left-index (if (eql side 'left)
+                   0
+                   (left-index link))
+   :right-index (if (eql side 'right)
+                    0
+                    (right-index link))))
 (defmethod downgrade-mystery ((link link) &key (multiplier 0.99))
   (setf (mystery link) (* (mystery link) multiplier)))
 (defmethod map-index ((link link) index)
@@ -382,7 +399,7 @@ second return value."))
                            (loop
                              for i from 0 to (1- (length punctuation-form))
                              with this-char = (elt punctuation-form i)
-                             if (not (eql this-char #\Space))
+                             if (not (char= this-char #\Space))
                                collect this-char))
                           punctuation-form)))
                spaces-form))
@@ -448,26 +465,56 @@ second return value."))
                   (cond
                     (right-rule
                      (let* ((right-sequences (sequences right-rule))
-                            ;; All the valid links between the left rule and
-                            ;; the right rule.
+                            ;; Get all valid links:
                             (next-links
-                              (loop
-                                for x from 0 to (length
-                                                 (sequences left-rule))
-                                append
-                                (loop
-                                  for y from 0 to (length
-                                                   (sequences right-rule))
-                                  append
-                                  (let ((this-link
-                                          (get-link
-                                           environment
-                                           :left-name (name left-rule)
-                                           :right-name (name right-rule)
-                                           :left-index x
-                                           :right-index y)))
-                                    (if this-link
-                                        (list this-link))))))
+                              (append
+                               ;; Collect links that only expand the left rule
+                               (loop
+                                 for x from 0 to (length
+                                                  (sequences left-rule))
+                                 with
+                                   this-link =
+                                             (get-link
+                                              environment
+                                              :left-name (name left-rule)
+                                              :right-name (right-name link)
+                                              :left-index x
+                                              :right-index right-index)
+                                 if this-link
+                                   collect this-link)
+                               ;; Collect links that only expand the right rule
+                               (loop
+                                 for x from 0 to (length
+                                                  (sequences right-rule))
+                                 with
+                                   this-link =
+                                             (get-link
+                                              environment
+                                              :left-name (left-name link)
+                                              :right-name (name right-rule)
+                                              :left-index left-index
+                                              :right-index x)
+                                 if this-link
+                                   collect this-link)
+                               ;; Collect links that expand both the left rule
+                               ;; and the right rule
+                               (loop
+                                 for x from 0 to (length
+                                                  (sequences left-rule))
+                                 append
+                                 (loop
+                                   for y from 0 to (length
+                                                    (sequences right-rule))
+                                   with
+                                     this-link =
+                                               (get-link
+                                                environment
+                                                :left-name (name left-rule)
+                                                :right-name (name right-rule)
+                                                :left-index x
+                                                :right-index y)
+                                   if this-link
+                                     collect this-link))))
                             (best-link (select-best-link next-links)))
                        (downgrade-mystery best-link)
                        (add-link environment best-link)
@@ -480,12 +527,31 @@ second return value."))
                            (expand-rule-sequence
                             environment
                             :left-sequence
-                            (elt left-sequences (left-index best-link))
+                            ;; Does the left rule expand?
+                            (if (eql (left-name best-link) (left-name link))
+                                (list left-rule)
+                                (elt left-sequences (left-index best-link)))
                             :right-sequence
-                            (elt right-sequences (right-index best-link))
-                            :link best-link)
-                         (setf (elt right-result right-index)
-                               right-expansion)
+                            ;; Does the right rule expand?
+                            (if (eql (right-name best-link) (right-name link))
+                                (list right-rule)
+                                (elt right-sequences (right-index best-link)))
+                            :link
+                            (copy-with-index-reset
+                             best-link
+                             :side
+                             (cond
+                               ((eql (left-name best-link) (left-name link))
+                                'left)
+                               ((eql (right-name best-link) (right-name link))
+                                'right)
+                               (t
+                                'neither))))
+                         (setf right-result
+                               (append
+                                (subseq right-result 0 right-index)
+                                right-expansion
+                                (subseq right-result (1+ right-index))))
                          left-expansion)))
                     (left-sequences
                      (expand-rule-sequence
