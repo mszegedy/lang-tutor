@@ -12,6 +12,24 @@
 ;;;; You should have received a copy of the GNU General Public License
 ;;;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+;;;; This file is a pretty good demonstration of my programming ability.
+;;;; Pros:
+;;;; - Reasonably-well documented
+;;;; - Adheres to Google's Common Lisp Style Guide (mostly)
+;;;; - Relies more on smart data structures than smart code
+;;;; - Highly compartmentalized, so pretty flexible
+;;;; - Third-party code is properly attributed
+;;;; - Written in Lisp
+;;;; - Contains a Dragonball Z joke
+;;;; Cons:
+;;;; - Contains some complicated stuff that a smarter person could simplify
+;;;; - Contains at least one hack
+;;;; - Has a global variable
+;;;; - Doesn't just do one thing well
+;;;; - No consistent naming scheme for functions or variables
+;;;; - Highly compartmentalized, so pretty bloated
+;;;; - Written in Lisp
+
 (defconstant +debug+ t
   "Whether or not to show debugging text.")
 
@@ -78,7 +96,7 @@ separators."
    (loop for i = 0 then (1+ j)
          as j = (position #\Space string :start i)
          if (not (equal (subseq string i j) "")) ; TODO: optimize
-         collect (subseq string i j)
+           collect (subseq string i j)
          while j)))
 ;;; Program-specific functions
 (defun print-sequence (sequence &key (destination t))
@@ -149,10 +167,10 @@ guaranteed to be deterministic."
      (let ((best-link (car links)))
        (loop
          for link in links
-         do
-            (if (> (mystery link) (mystery best-link))
-                (setf best-link link)))
+         if (> (mystery link) (mystery best-link))
+           do (setf best-link link))
        best-link))))
+(defun process-file)
 
 ;;;;;;;;;;;;;;;;
 ;;; Generics ;;;
@@ -565,3 +583,6 @@ second return value."))
                  left-index
                  left-sequence))))))
     (values left-result right-result)))
+
+(defclass lesson ()
+  )
