@@ -26,7 +26,8 @@ benefit of learners.")
 ;; rule is the rule name, followed by the different possible sequences it could
 ;; expand to. Items in the sequence that point to rules are encased in a
 ;; list. Every rule should be prefixed with the ISO 639-1 two-letter code for
-;; the language.
+;; the language. No rule name may consist entirely of numeric digits (or else
+;; it would lead to ambiguity when defining links).
 (left-rules
  (tl-sentence
   (<capital> (tl-linking-sentence) <period>))
@@ -69,9 +70,9 @@ benefit of learners.")
  (en-linking-subject-and-verb
   ((en-w-i) am)
   ((en-w-you) are)
-  ((en-third-person-singular-pronouns) is)
+  ((en-third-person-singular-pronoun) is)
   ((en-singular-noun-phrase) is))
- (en-third-person-singular-pronouns
+ (en-third-person-singular-pronoun
   ((en-w-he))
   ((en-w-she))
   ((en-w-it)))
@@ -110,40 +111,62 @@ benefit of learners.")
 ;; combination of names. Each such list consists of a two-element list that
 ;; contains the link's LEFT-INDEX and RIGHT-INDEX, followed by a list that
 ;; contains each pair of linked indices for that link, from which the LINK-MAP
-;; may be constructed. A shorthand may be used for declaring links wherein one
-;; just writes a two-element list containing a LEFT-NAME and a RIGHT-NAME. This
-;; is short for a link between the respective first elements of the respective
-;; first sequences of those rules; i.e.:
+;; may be constructed. Example:
 ;;
-;;  (left-name right-name)
+;;  ((left-rule right-rule)
+;;   ((4 6)
+;;    ((2 3)
+;;     (0 1)))
+;;   ((5 10)
+;;    ((98 21))))
+;;
+;; This links the third element in the fifth sequence of LEFT-RULE with the
+;; fourth element in the seventh sequence of RIGHT-RULE, the first element in
+;; the fifth sequence of LEFT-RULE with the second element in the seventh
+;; sequence of RIGHT-RULE, and the ninety-ninth element in the sixth sequence
+;; in LEFT-RULE with the twenty-second element in the eleventh sequence in
+;; RIGHT-RULE.
+;; A shorthand may be used for declaring links wherein one just writes a
+;; two-element list containing a LEFT-NAME and a RIGHT-NAME. This is short for
+;; a link between the respective first elements of the respective first
+;; sequences of those rules. Example:
+;;
+;;  (left-rule right-rule)
 ;;
 ;; is short for
 ;;
-;;  ((left-name right-name)
+;;  ((left-rule right-rule)
 ;;   ((0 0)
 ;;    ((0 0))))
+;;
+;; Another, more computationally advanced shorthand may also be used: instead
+;; of specifying a pair of sequence indices, followed by a list of pairs of
+;; element indices, one may specify a list of pairs of names of rules. This
+;; will cause every instance of the first specified rule in the sequences of
+;; the overarching left rule to be linked to every instance of the second
+;; specified rule in the overarching right rule. One may also replace a pair of
+;; item indices with a pair of rule names, causing the same effect but
+;; localized to that sequence. Both of these are only advisable when each rule
+;; is sure to only occur once, and is more computationally expensive than just
+;; specifying pairs of indices. It does, however, lead to a more readable
+;; lesson format.
 (links
  ((tl-sentence en-sentence)
-  ((0 0)
-   ((1 1))))
+  ((tl-linking-sentence en-linking-sentence)))
  ((tl-linking-sentence en-linking-sentence)
-  ((0 0)
-   ((0 1)
-    (1 0))))
+  ((tl-linking-predicate en-noun-phrase)
+   (tl-ang-noun-phrase en-linking-subject-and-verb)))
  (tl-linking-predicate en-noun-phrase)
  ((tl-linking-predicate en-singular-noun-phrase)
-  ((0 0)
-   ((0 1)))))
-;; These define many links at once: every instance of the rule on the left will
-;; get linked to every instance of the rule on the right. Ideally, each of
-;; these rules is a word, and is used only once, but technically this can be
-;; used to link any two rules.
-(word-links
- (tl-w-ako en-w-i)
- (tl-w-ka en-w-you)
- (tl-w-siya en-w-he)
- (tl-w-siya en-w-she)
- (tl-w-lalaki en-w-man)
- (tl-w-lalaki en-w-boy)
- (tl-w-babae en-w-woman)
- (tl-w-bata en-w-child))
+  ((tl-noun en-singular-noun)))
+ ((tl-noun en-singular-noun)
+  ((tl-w-lalaki en-w-man)
+   (tl-w-lalaki en-w-boy)
+   (tl-w-babae en-w-woman)
+   (tl-w-babae en-w-girl)))
+ ((tl-ang-noun-phrase en-linking-subject-and-verb)
+  ((tl-noun en-singular-noun)))
+ ((tl-ang-pronoun en-linking-subject-and-verb)
+  ((tl-w-ako en-w-i)
+   (tl-w-ka en-w-you)
+   (tl-w-siya en-third-person-singular-pronoun))))
