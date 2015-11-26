@@ -178,6 +178,9 @@ guaranteed to be deterministic."
 ;; First appear in RULE-POINTER
 ;; First appear in RULE
 ;; First appear in LINK
+(defgeneric inverted (link)
+  (:documentation
+   "Returns a copy of the link with the left and right sides switched."))
 (defgeneric copy-with-index-reset (link &key side)
   (:documentation
    "Returns a copy of the link with the index on one side or the other reset to 0. The keyword
@@ -283,9 +286,22 @@ the lesson."))
     :initarg :right-index
     :documentation
     "The index of the sequence for the rule on the right. If it's a word, the index is 0.")
+   (left-excluded
+    :accessor left-excluded
+    :initarg :left-excluded
+    :initform nil
+    :documentation
+    "The list of indices on the left side that are linked to \"nothing\" (but are still linked, in
+  some sense).")
+   (right-excluded
+    :accessor right-excluded
+    :initarg :right-excluded
+    :initform nil
+    :documentation
+    "The list of indices on the right side that are linked to \"nothing\" (but are still linked, in
+  some sense).")
    (link-map
     :accessor link-map
-    :initarg :link-map
     :initform (make-hash-table)
     :documentation
     "A hash table that maps an index on the left side to an index on the right side.")
@@ -295,8 +311,7 @@ the lesson."))
     :documentation
     "How well the learner knows the link. 1.0 is completely unkown, 0.0 is completely known."))
   (:documentation
-   "A link between two rules, that tells what items are linked inside
-  them."))
+   "A link between two rules, that tells what items are linked inside them."))
 (defmethod copy-with-index-reset ((link link) &key side)
   (make-instance
    'link
@@ -316,13 +331,11 @@ the lesson."))
 (defclass environment ()
   ((rules
     :accessor rules
-    :initarg :rules
     :initform (make-hash-table)
     :documentation
     "The rules in the environment.")
    (links
     :accessor links
-    :initarg :links
     :initform (make-hash-table)
     :documentation
     "The links in the environment. Each link is indexed by a four-element list, consisting of,
@@ -366,7 +379,7 @@ the lesson."))
              (append
               (subseq sequence 0 (1- first-rule-pointer-index))
               rule-sequence
-              (nthcdr first-rule-pointer-index sequence)))))
+              (nthcdr first-rule-pointer-index sequence))))) ; use the smallest hammer for the job
         ;; If SEQUENCE doesn't contain a RULE-POINTER object
         (list sequence))))
 (defmethod match-answer ((environment environment) answer sequence
@@ -415,7 +428,7 @@ the lesson."))
              (if sloppyp
                  ;; Dynamic programming implementation of edit distance
                  ;; From Rosetta Code
-                 ;; Returns t if edit distance is greater than MAX-DISTANCE
+                 ;; Returns T if edit distance is greater than MAX-DISTANCE
                  (let* ((max-distance 2)
                         (length-1 (length string-1))
                         (length-2 (length string-2))
@@ -436,8 +449,7 @@ the lesson."))
                                         (min (distance (1- x) y)
                                              (distance x (1- y))
                                              (distance (1- x) (1- y))))))))))
-                   (if (> max-distance (distance length-1 length-2))
-                       t))
+                   (>= max-distance (distance length-1 length-2)))
                  (equal first-string second-string))))
       (member (modify answer)
               (mapcar #'modify expansion-strings)
@@ -459,7 +471,8 @@ the lesson."))
                                            (sequences left-rule)))
                        (right-index (if link
                                         (map-index link left-index)))
-                       (right-item (if right-index
+                       (right-item (if (and right-index
+                                            (not (eql right-index '*)))
                                        (elt right-sequence right-index)))
                        (right-rule (if (typep 'rule-pointer right-item)
                                        (get-rule environment (name right-item))))
@@ -467,44 +480,32 @@ the lesson."))
                                             (sequences right-rule)))
                        ;; Get all valid links:
                        (next-links
-                         (if link
-                             (append
-                              ;; Collect links that only expand the left rule
-                              (loop
-                                for x from 0 to (length (sequences left-rule))
-                                with this-link = (get-link environment
-                                                           :left-name (name left-rule)
-                                                           :right-name (right-name link)
-                                                           :left-index x
-                                                           :right-index (right-index link))
-                                if this-link
-                                  collect this-link)
-                              (if right-rule
-                                  (append
-                                   ;; Collect links that only expand the right rule
+                         ;; RIGHT-INDEX existing means that this item is linked
+                         (if right-index
+                             (if (eql right-index '*)
+                                 ;; Collect links that only expand the left rule
+                                 (loop
+                                   for x from 0 to (length (sequences left-rule))
+                                   with this-link = (get-link environment
+                                                              :left-name (name left-rule)
+                                                              :right-name (right-name link)
+                                                              :left-index x
+                                                              :right-index (right-index link))
+                                   if this-link
+                                     collect this-link)
+                                 ;; Collect links that expand both the left rule and the right rule
+                                 (loop
+                                   for x from 0 to (length (sequences left-rule))
+                                   append
                                    (loop
-                                     for x from 0 to (length (sequences right-rule))
+                                     for y from 0 to (length (sequences right-rule))
                                      with this-link = (get-link environment
-                                                                :left-name (left-name link)
+                                                                :left-name (name left-rule)
                                                                 :right-name (name right-rule)
-                                                                :left-index (left-index link)
-                                                                :right-index x)
+                                                                :left-index x
+                                                                :right-index y)
                                      if this-link
-                                       collect this-link)
-                                   ;; Collect links that expand both the left rule and the right
-                                   ;; rule
-                                   (loop
-                                     for x from 0 to (length (sequences left-rule))
-                                     append
-                                     (loop
-                                       for y from 0 to (length (sequences right-rule))
-                                       with this-link = (get-link environment
-                                                                  :left-name (name left-rule)
-                                                                  :right-name (name right-rule)
-                                                                  :left-index x
-                                                                  :right-index y)
-                                       if this-link
-                                         collect this-link)))))))
+                                       collect this-link)))))
                        (best-link (select-best-link next-links)))
                   (cond
                     (best-link
@@ -515,7 +516,7 @@ the lesson."))
                      ;; one on the right manually replaces the one at the corresponding index on
                      ;; the right.
                      (multiple-value-bind (left-expansion right-expansion)
-                         (expand-rule-sequence
+                                 (expand-rule-sequence
                           environment
                           :left-sequence (if (eql (left-name best-link) (left-name link))
                                              (list left-rule)
